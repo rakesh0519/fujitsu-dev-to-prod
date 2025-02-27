@@ -87,17 +87,20 @@ module "cosmos" {
 
 module "redis_service" {
   source              = "../../modules/redis_service"
-  redis_name          = "redis-cache-dev-unique"
-  location            = "eastus"
-  resource_group_name            = azurerm_resource_group.resourcegroup.name
-  sku_name            = "Standard"
-  capacity            = 1
- # enable_non_ssl_port = false  # If needed, this setting can be enabled manually in the Azure Portal as a one-time activity.
+  redis_name          = "redis-cache-dev-unique"  # Change this to a production-specific unique name
+  location            = "eastus"  # Consider using a region closer to your production users for better performance
+  resource_group_name = azurerm_resource_group.resourcegroup.name
+  sku_name            = "Standard"  # Change to "Premium" for better performance, persistence, and VNet integration in Prod
+  capacity            = 1  # Increase capacity based on production workload, e.g., 2-6 for Premium tier
+
+  # enable_non_ssl_port = false  # Keep disabled for security in production
+  
   tags = {
-    environment = "dev"
+    environment = "dev"  # Change to "prod"
     project     = "my-project"
   }
 }
+
 
 module "networking" {
   source = "../../modules/networking"
