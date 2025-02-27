@@ -19,27 +19,31 @@ module "cosmos" {
     "${local.prefix}-cosmos-account" = {
         offer_type                            = "Standard"
         kind                                  = "GlobalDocumentDB"
-        analytical_storage_enabled            = false
-        public_network_access_enabled         = true
-        key_vault_key_id                      = null 
-        access_key_metadata_writes_enabled    = true 
-        network_acl_bypass_for_azure_services = true 
+        analytical_storage_enabled            = true   # Enable for performance insights in prod
+        public_network_access_enabled         = false  # Disable public access for security in prod
+        key_vault_key_id                      = "<Your Key Vault Key ID>" # Use Key Vault for security in prod
+        access_key_metadata_writes_enabled    = false  # Disable unless required in prod
+        network_acl_bypass_for_azure_services = false  # Stricter security in prod
         is_virtual_network_filter_enabled     = true
     }
  }
 
   consistency_policy = {
-    consistency_level       = "Session"
+    consistency_level       = "Strong"  # Use Strong consistency for data integrity in prod
   }
  
   failover_locations = [
     {
       location          = local.location
       failover_priority = 0
+    },
+    {
+      location          = "eastus"  # Add a secondary region for high availability in prod
+      failover_priority = 1
     }
   ]
 
-  capabilities = ["EnableServerless"]
+  capabilities = ["EnableHighAvailability"]  # Ensure high availability in prod
 
   virtual_network_rules = [
     {
@@ -49,15 +53,15 @@ module "cosmos" {
   ]
 
   backup = {
-    type                = "Periodic"
-    interval_in_minutes = 240
-    retention_in_hours  = 8
+    type                = "Continuous"  # Use continuous backup for better recovery in prod
+    interval_in_minutes = null
+    retention_in_hours  = 168  # Retain backups for 7 days in prod
   }
 
   cors_rules = {
     allowed_headers    = ["x-ms-meta-data*"]
     allowed_methods    = ["GET", "POST"]
-    allowed_origins    = ["*"]
+    allowed_origins    = []  # Restrict CORS to specific domains in prod
     exposed_headers    = ["*"]
     max_age_in_seconds = 3600
   }
@@ -67,34 +71,17 @@ module "cosmos" {
   virtual_network_name          = module.networking.virtual_network_name
   private_subnet_address_prefix = module.networking.pvt_subnet.address_prefix
 
-  allowed_ip_range_cidrs = [
-    "1.2.3.4",
-    "0.0.0.0"
-  ]
+  allowed_ip_range_cidrs = []  # Restrict access to VNet only for security in prod
 
-  dedicated_instance_size = "Cosmos.D4s"
-  dedicated_instance_count = 1
+  dedicated_instance_size = "Cosmos.D8s"  # Increase instance size for production workload
+  dedicated_instance_count = 3  # Increase count for redundancy in prod
 
   log_analytics_workspace_name = module.monitoring.log_analytics_workspace_name
   storage_account_name = module.storage.storage_account_name
   
   tags = {
     ProjectName  = "fujitsu-icp"
-    Environment  = "dev"
-  }
-}
-
-module "redis_service" {
-  source              = "../../modules/redis_service"
-  redis_name          = "redis-cache-dev-unique"
-  location            = "eastus"
-  resource_group_name            = azurerm_resource_group.resourcegroup.name
-  sku_name            = "Standard"
-  capacity            = 1
- # enable_non_ssl_port = false  # If needed, this setting can be enabled manually in the Azure Portal as a one-time activity.
-  tags = {
-    environment = "dev"
-    project     = "my-project"
+    Environment  = "prod"  # Update environment tag to prod
   }
 }
 
