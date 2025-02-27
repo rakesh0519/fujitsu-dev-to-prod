@@ -562,11 +562,11 @@ module "application-gateway" {
 }
 
 module "monitoring" {
-  source = "../../modules/monitoring"
+  source              = "../../modules/monitoring"
   resource_group_name = azurerm_resource_group.resourcegroup.name
   location            = local.location
 
   log_analytics_workspace_name = "${local.prefix}-logws"
-  sku = "PerGB2018"
-  retention_in_days = "30"
+  sku                          = "PerGB2018"
+  retention_in_days            = 90  # Increased for better log analysis
 }
