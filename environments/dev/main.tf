@@ -243,41 +243,38 @@ module "networking" {
 }
 
 module "storage" {
-  source = "../../modules/storage"
+  source              = "../../modules/storage"
   resource_group_name = azurerm_resource_group.resourcegroup.name
   location            = local.location
   
-  storage_account_name  = "${local.prefix}storage"
-  account_kind = "StorageV2"
-  access_tier = "Hot"
-  skuname = "Standard_ZRS"
+  storage_account_name  = "${local.prefix}storage"  # Use a unique, production-specific name (e.g., "${local.prefix}prodstorage")
+  account_kind          = "StorageV2"
+  access_tier           = "Hot"  # Keep as "Hot" if frequent access is needed, otherwise consider "Cool" for cost optimization
+  skuname               = "Standard_ZRS"  # Change to "Premium_LRS" or "Standard_GRS" for better redundancy and performance in production
 
-  enable_advanced_threat_protection = true
+  enable_advanced_threat_protection = true  # Keep this enabled for security
+  
+  # Enable storage lifecycle management for cost efficiency in production
+  lifecycles = [
+    {
+      prefix_match               = ["blobcontainer251"]
+      tier_to_cool_after_days    = 30   # Move to cool storage after 30 days
+      tier_to_archive_after_days = 90   # Move to archive storage after 90 days
+      delete_after_days          = 180  # Delete after 180 days
+      snapshot_delete_after_days = 60   # Delete snapshots after 60 days
+    }
+  ]
 
-  # containers_list = [
-  #  { name = "blobcontainer251", access_type = "blob" }
-  # ]
-
-  # Configure managed identities to access Azure Storage (Optional)
-  # Possible types are `SystemAssigned`, `UserAssigned` and `SystemAssigned, UserAssigned`.
-  # managed_identity_type = "UserAssigned"
+  # Enable Managed Identity for secure access to storage in production
+  managed_identity_type = "SystemAssigned"  # Use "SystemAssigned" for secure authentication
   # managed_identity_ids  = [for k in azurerm_user_assigned_identity.example : k.id]
-
-  # lifecycles = [
-  #   {
-  #     prefix_match               = ["blobcontainer251"]
-  #     tier_to_cool_after_days    = 0
-  #     tier_to_archive_after_days = 50
-  #     delete_after_days          = 100
-  #     snapshot_delete_after_days = 30
-  #   }
-  # ]
 
   tags = {
     ProjectName  = "fujitsu-icp"
-    Environment  = "dev"
+    Environment  = "prod"  # Change to "prod"
   }
 }
+
 
 module "frontend-app-service" {
   source  = "../../modules/app_service"
