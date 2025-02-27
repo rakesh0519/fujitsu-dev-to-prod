@@ -85,6 +85,20 @@ module "cosmos" {
   }
 }
 
+module "redis_service" {
+  source              = "../../modules/redis_service"
+  redis_name          = "redis-cache-dev-unique"
+  location            = "eastus"
+  resource_group_name            = azurerm_resource_group.resourcegroup.name
+  sku_name            = "Standard"
+  capacity            = 1
+ # enable_non_ssl_port = false  # If needed, this setting can be enabled manually in the Azure Portal as a one-time activity.
+  tags = {
+    environment = "dev"
+    project     = "my-project"
+  }
+}
+
 module "networking" {
   source = "../../modules/networking"
   resource_group_name            = azurerm_resource_group.resourcegroup.name
