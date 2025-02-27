@@ -275,7 +275,6 @@ module "storage" {
   }
 }
 
-
 module "frontend-app-service" {
   source  = "../../modules/app_service"
   depends_on = [module.networking, module.storage]
@@ -284,8 +283,8 @@ module "frontend-app-service" {
 
   app_service_plan_name = "${local.prefix}-frontendserviceplan"
   service_plan = {
-    os_type = "Linux"
-    sku_name = "B1"
+    os_type  = "Linux"
+    sku_name = "P1v2"  # Upgraded from B1 to P1v2 for better performance in production
   }
 
   app_service_name       = "${local.prefix}-fe-flutter-app"
@@ -293,8 +292,8 @@ module "frontend-app-service" {
   enable_https           = true
 
   site_config = {
-    always_on                 = true
-    ftps_state                = "FtpsOnly"
+    always_on                 = true  # Keep the app always running in production
+    ftps_state                = "Disabled"  # Disable FTPS in production for security
     http2_enabled             = true
   }
 
@@ -315,6 +314,8 @@ module "frontend-app-service" {
     XDT_MicrosoftApplicationInsights_Mode           = "recommended"
     XDT_MicrosoftApplicationInsights_NodeJS         = "1"
     XDT_MicrosoftApplicationInsights_PreemptSdk     = "disabled"
+    WEBSITE_DNS_SERVER                              = "168.63.129.16"  # Adding Azure DNS for stability
+    WEBSITE_LOAD_CERTIFICATES                       = "*"  # Load all certificates for secure communication
   }
 
   enable_backup        = true
@@ -325,7 +326,7 @@ module "frontend-app-service" {
     name                     = "DefaultBackup"
     frequency_interval       = 1
     frequency_unit           = "Day"
-    retention_period_days    = 90
+    retention_period_days    = 180  # Increased retention from 90 to 180 days for production
   }
 
   app_insights_name = "frontendapp"
@@ -335,9 +336,10 @@ module "frontend-app-service" {
 
   tags = {
     ProjectName  = "fujitsu-icp"
-    Environment  = "dev"
+    Environment  = "prod"  # Changed from "dev" to "prod"
   }
 }
+
 
 module "api_management" {
   source              = "../../modules/api_management"
