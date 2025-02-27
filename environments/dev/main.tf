@@ -349,8 +349,9 @@ module "api_management" {
   api_management_name = "${local.prefix}-api-management-v2"
   publisher_name      = "Rock Paper Panda"
   publisher_email     = "team@rockpaperpanda.com"
-  sku_name            = "Developer_1"
+  sku_name            = "Premium_1"  # Upgraded from "Developer_1" to "Premium_1" for production
 }
+
 
 module "communication_service" {
   source                  = "../../modules/communication_service"
