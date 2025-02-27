@@ -433,63 +433,40 @@ module "key-vault" {
   key_vault_name             = "${local.prefix}-keyvault"
   key_vault_sku_pricing_tier = "premium"
 
-  # Once `Purge Protection` has been Enabled it's not possible to Disable it
-  # Deleting the Key Vault with `Purge Protection` enabled will schedule the Key Vault to be deleted
-  # The default retention period is 90 days, possible values are from 7 to 90 days
-  # use `soft_delete_retention_days` to set the retention period
-  enable_purge_protection = false
+  # Production Best Practices
+  enable_purge_protection   = true  # Enable to prevent accidental deletion
   soft_delete_retention_days = 90
 
-  # Access policies for users, you can provide list of Azure AD users and set permissions.
-  # Make sure to use list of user principal names of Azure AD users.
-  # access_policies = [
-  #   {
-  #     azure_ad_user_principal_names = [""]
-  #     key_permissions               = ["Get", "List"]
-  #     secret_permissions            = ["Get", "List"]
-  #     certificate_permissions       = ["Get", "Import", "List"]
-  #     storage_permissions           = ["Backup", "Get", "List", "Recover"]
-  #   },
+  # Access Policies (Should be configured in a separate file for security best practices)
+  # It is recommended to use RBAC instead of access policies in production
+  access_policies = [
+    {
+      azure_ad_group_names    = ["Prod-KeyVault-Admins"]
+      key_permissions         = ["Get", "List", "Create", "Delete", "Update", "Recover"]
+      secret_permissions      = ["Get", "List", "Set", "Delete", "Recover"]
+      certificate_permissions = ["Get", "List", "Create", "Import", "Delete"]
+      storage_permissions     = ["Backup", "Get", "List", "Recover"]
+    }
+  ]
 
-  #   # Access policies for AD Groups
-  #   # to enable this feature, provide a list of Azure AD groups and set permissions as required.
-  #   {
-  #     azure_ad_group_names    = [""]
-  #     key_permissions         = ["Get", "List"]
-  #     secret_permissions      = ["Get", "List"]
-  #     certificate_permissions = ["Get", "Import", "List"]
-  #     storage_permissions     = ["Backup", "Get", "List", "Recover"]
-  #   },
-
-  #   # Access policies for Azure AD Service Principlas
-  #   # To enable this feature, provide a list of Azure AD SPN and set permissions as required.
-  #   {
-  #     azure_ad_service_principal_names = [""]
-  #     key_permissions                  = ["Get", "List"]
-  #     certificate_permissions          = ["Get", "Import", "List"]
-  #     storage_permissions              = ["Backup", "Get", "List", "Recover"]
-  #   }
-  # ]
-
-  # Create a required Secrets as per your need.
-  # When you Add `usernames` with empty password this module creates a strong random password
-  # use .tfvars file to manage the secrets as variables to avoid security issues.
+  # Secrets (Should be referenced from .tfvars or a separate secrets management system)
   secrets = {
-    "message" = "Hello, world!"
+    "message" = "Production Secret!"
     "vmpass"  = ""
   }
 
   enable_private_endpoint       = true
   virtual_network_name          = module.networking.virtual_network_name
   private_subnet_address_prefix = module.networking.pvt_subnet.address_prefix
-  log_analytics_workspace_name = module.monitoring.log_analytics_workspace_name
-  storage_account_name = module.storage.storage_account_name
+  log_analytics_workspace_name  = module.monitoring.log_analytics_workspace_name
+  storage_account_name          = module.storage.storage_account_name
 
   tags = {
     ProjectName  = "fujitsu-icp"
-    Environment  = "dev"
+    Environment  = "prod"
   }
 }
+
 
 module "application-gateway" {
   source     = "../../modules/application_gateway"
