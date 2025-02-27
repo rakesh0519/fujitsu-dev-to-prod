@@ -371,7 +371,7 @@ module "backend-app-service" {
   app_service_plan_name = "${local.prefix}-backendserviceplan"
   service_plan = {
     os_type = "Linux"
-    sku_name = "B1"
+    sku_name = "P1v2"  # Upgraded from "B1" to "P1v2" for production scalability & performance
   }
 
   app_service_name       = "${local.prefix}-be-python-app"
@@ -420,7 +420,7 @@ module "backend-app-service" {
  
   tags = {
     ProjectName  = "fujitsu-icp"
-    Environment  = "dev"
+    Environment  = "prod"
   }
 }
 
