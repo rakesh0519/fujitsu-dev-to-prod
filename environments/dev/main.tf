@@ -467,7 +467,6 @@ module "key-vault" {
   }
 }
 
-
 module "application-gateway" {
   source     = "../../modules/application_gateway"
   depends_on = [module.networking, module.frontend-app-service, module.storage, module.monitoring]
@@ -477,95 +476,88 @@ module "application-gateway" {
 
   virtual_network_name = module.networking.virtual_network_name
   subnet_name          = module.networking.gateway_subnet
-  app_gateway_name     = "testgateway"
+  app_gateway_name     = "prodgateway"
 
   sku = {
-    name = "Standard_v2"
-    tier = "Standard_v2"
+    name = "WAF_v2"  # Changed to Web Application Firewall (WAF) for better security
+    tier = "WAF_v2"
   }
 
   autoscale_configuration = {
-    min_capacity = 1
-    max_capacity = 5
+    min_capacity = 2  # Increased min capacity for better HA
+    max_capacity = 10 # Increased max capacity for scaling
   }
 
   backend_address_pools = [
     {
-      name  = "appgw-testgateway-eastus-bapool01"
+      name  = "appgw-prodgateway-eastus-bapool01"
       fqdns = [module.frontend-app-service.default_hostname]
     }
   ]
 
   backend_http_settings = [
     {
-      name                  = "appgw-testgateway-eastus-be-http-set1"
+      name                  = "appgw-prodgateway-eastus-be-http-set1"
       cookie_based_affinity = "Disabled"
       path                  = "/"
       enable_https          = true
       request_timeout       = 30
       host_name             = module.frontend-app-service.default_hostname
-      probe_name            = "appgw-testgateway-eastus-probe1"
+      probe_name            = "appgw-prodgateway-eastus-probe1"
       connection_draining = {
         enable_connection_draining = true
         drain_timeout_sec          = 300
       }
-    },
-    {
-      name                  = "appgw-testgateway-eastus-be-http-set2"
-      cookie_based_affinity = "Enabled"
-      path                  = "/"
-      enable_https          = false
-      request_timeout       = 30
     }
   ]
 
   http_listeners = [
     {
-      name = "appgw-testgateway-eastus-be-htln01"
-      # ssl_certificate_name = "appgw-testgateway-eastus-ssl01"
-      host_name = null
+      name                  = "appgw-prodgateway-eastus-be-htln01"
+      ssl_certificate_name  = "appgw-prodgateway-eastus-ssl01"
+      host_name             = module.frontend-app-service.default_hostname
     }
   ]
 
   request_routing_rules = [
     {
-      name                       = "appgw-testgateway-eastus-be-rqrt"
+      name                       = "appgw-prodgateway-eastus-be-rqrt"
       rule_type                  = "Basic"
-      http_listener_name         = "appgw-testgateway-eastus-be-htln01"
-      backend_address_pool_name  = "appgw-testgateway-eastus-bapool01"
-      backend_http_settings_name = "appgw-testgateway-eastus-be-http-set1"
+      http_listener_name         = "appgw-prodgateway-eastus-be-htln01"
+      backend_address_pool_name  = "appgw-prodgateway-eastus-bapool01"
+      backend_http_settings_name = "appgw-prodgateway-eastus-be-http-set1"
       priority                   = 1
     }
   ]
 
-  # ssl_certificates = [{
-  #   name     = "appgw-testgateway-eastus-ssl01"
-  #   data     = "./keyBag.pfx"
-  #   password = "P@$$w0rd123"
-  # }]
+  ssl_certificates = [
+    {
+      name     = "appgw-prodgateway-eastus-ssl01"
+      data     = "./certs/prodgateway.pfx"  # Ensure certificate file is stored securely
+      password = var.ssl_cert_password  # Store password in a secure variable
+    }
+  ]
 
   health_probes = [
     {
-      name                = "appgw-testgateway-eastus-probe1"
+      name                = "appgw-prodgateway-eastus-probe1"
       host                = module.frontend-app-service.default_hostname
       interval            = 30
-      path                = "/"
+      path                = "/health"
       port                = 443
       timeout             = 30
       unhealthy_threshold = 3
     }
   ]
 
-  # A list with a single user managed identity id to be assigned to access Keyvault
-  # identity_ids = ["${azurerm_user_assigned_identity.example.id}"]
+  identity_ids = [azurerm_user_assigned_identity.appgw_identity.id]  # Assign Managed Identity for Key Vault access
 
   log_analytics_workspace_name = module.monitoring.log_analytics_workspace_name
-  storage_account_name = module.storage.storage_account_name
+  storage_account_name         = module.storage.storage_account_name
 
-  # Adding TAG's to Azure resources
   tags = {
     ProjectName = "fujitsu-icp"
-    Environment = "dev"
+    Environment = "prod"
   }
 }
 
